@@ -1,0 +1,32 @@
+# DCGAN default config
+
+data:
+  root: data/celeba
+  image_size: 64
+  batch_size: 128
+  num_workers: 4
+  subset_size: 30000  # use a subset for faster iter
+
+model:
+  latent_dim: 100
+  ngf: 64   # generator feature maps
+  ndf: 64   # discriminator feature maps
+  channels: 3
+
+train:
+  epochs: 25
+  lr_g: 0.0002
+  lr_d: 0.0002
+  beta1: 0.5
+  beta2: 0.999
+  label_smoothing: 0.1   # one-sided
+  device: cuda
+  seed: 42
+  log_interval: 100
+  sample_interval: 1     # epochs
+  output_dir: artifacts
+
+fid:
+  enabled: true
+  num_real: 5000
+  num_fake: 5000
