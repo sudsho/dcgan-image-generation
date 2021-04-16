@@ -1,9 +1,21 @@
-"""DCGAN training loop (alternating G/D updates)."""
+"""DCGAN training loop (alternating G/D updates).
+
+Tricks used:
+- One-sided label smoothing: real labels are (1 - eps).
+- Adam beta1 = 0.5 (DCGAN paper).
+- Track losses with MLflow if available.
+"""
 import argparse
 import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
+
+try:
+    import mlflow
+    HAS_MLFLOW = True
+except ImportError:
+    HAS_MLFLOW = False
 
 from src.data import get_celeba_loader
 from src.model import Generator, Discriminator, weights_init
@@ -14,6 +26,7 @@ def train(cfg):
     device = torch.device(cfg['train']['device']
                           if torch.cuda.is_available() else 'cpu')
     set_seed(cfg['train']['seed'])
+    smoothing = float(cfg['train'].get('label_smoothing', 0.0))
 
     loader = get_celeba_loader(
         root=cfg['data']['root'],
@@ -44,6 +57,14 @@ def train(cfg):
 
     fixed_z = torch.randn(64, cfg['model']['latent_dim'], device=device)
 
+    if HAS_MLFLOW:
+        mlflow.start_run()
+        for k in ('lr_g', 'lr_d', 'beta1', 'epochs', 'label_smoothing'):
+            if k in cfg['train']:
+                mlflow.log_param(k, cfg['train'][k])
+        mlflow.log_param('batch_size', cfg['data']['batch_size'])
+        mlflow.log_param('latent_dim', cfg['model']['latent_dim'])
+
     for epoch in range(cfg['train']['epochs']):
         for i, (real, _) in enumerate(loader):
             real = real.to(device)
@@ -51,7 +72,8 @@ def train(cfg):
 
             # ===== D step =====
             opt_d.zero_grad()
-            real_labels = torch.full((b,), 1.0, device=device)
+            # one-sided label smoothing: real -> 1 - smoothing
+            real_labels = torch.full((b,), 1.0 - smoothing, device=device)
             fake_labels = torch.full((b,), 0.0, device=device)
             out_real = D(real)
             loss_d_real = criterion(out_real, real_labels)
@@ -74,6 +96,10 @@ def train(cfg):
                 print(f'epoch {epoch} step {i} '
                       f'loss_d {loss_d.item():.4f} '
                       f'loss_g {loss_g.item():.4f}')
+                if HAS_MLFLOW:
+                    step = epoch * len(loader) + i
+                    mlflow.log_metric('loss_d', loss_d.item(), step=step)
+                    mlflow.log_metric('loss_g', loss_g.item(), step=step)
 
         # epoch end: save sample grid + checkpoint
         with torch.no_grad():
@@ -84,6 +110,9 @@ def train(cfg):
                          os.path.join(samples_dir, f'epoch_{epoch:03d}.png'))
         torch.save({'G': G.state_dict(), 'D': D.state_dict()},
                    os.path.join(ckpt_dir, f'epoch_{epoch:03d}.pt'))
+
+    if HAS_MLFLOW:
+        mlflow.end_run()
 
 
 def main():
