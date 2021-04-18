@@ -30,3 +30,4 @@ fid:
   enabled: true
   num_real: 5000
   num_fake: 5000
+  every_epochs: 5

@@ -20,6 +20,7 @@ except ImportError:
 from src.data import get_celeba_loader
 from src.model import Generator, Discriminator, weights_init
 from src.utils import load_config, set_seed, save_sample_grid
+from src.fid import compute_fid
 
 
 def train(cfg):
@@ -110,6 +111,19 @@ def train(cfg):
                          os.path.join(samples_dir, f'epoch_{epoch:03d}.png'))
         torch.save({'G': G.state_dict(), 'D': D.state_dict()},
                    os.path.join(ckpt_dir, f'epoch_{epoch:03d}.pt'))
+
+        # FID every few epochs - it's slow
+        fid_every = int(cfg.get('fid', {}).get('every_epochs', 5))
+        if cfg.get('fid', {}).get('enabled') and (epoch + 1) % fid_every == 0:
+            try:
+                fid = compute_fid(
+                    G, loader, cfg['model']['latent_dim'],
+                    cfg['fid']['num_real'], cfg['fid']['num_fake'], device)
+                print(f'  FID @ epoch {epoch}: {fid:.4f}')
+                if HAS_MLFLOW:
+                    mlflow.log_metric('fid', fid, step=epoch)
+            except Exception as e:
+                print(f'  FID failed: {e}')
 
     if HAS_MLFLOW:
         mlflow.end_run()
