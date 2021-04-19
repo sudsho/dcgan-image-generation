@@ -109,8 +109,16 @@ def train(cfg):
             G.train()
         save_sample_grid(samples,
                          os.path.join(samples_dir, f'epoch_{epoch:03d}.png'))
-        torch.save({'G': G.state_dict(), 'D': D.state_dict()},
-                   os.path.join(ckpt_dir, f'epoch_{epoch:03d}.pt'))
+        ckpt_path = os.path.join(ckpt_dir, f'epoch_{epoch:03d}.pt')
+        torch.save({'G': G.state_dict(), 'D': D.state_dict()}, ckpt_path)
+        # also keep a stable "latest" pointer for the API to pick up
+        latest = os.path.join(ckpt_dir, 'latest.pt')
+        try:
+            if os.path.exists(latest):
+                os.remove(latest)
+            torch.save({'G': G.state_dict(), 'D': D.state_dict()}, latest)
+        except OSError:
+            pass
 
         # FID every few epochs - it's slow
         fid_every = int(cfg.get('fid', {}).get('every_epochs', 5))
