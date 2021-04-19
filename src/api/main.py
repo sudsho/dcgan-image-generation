@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException
 from PIL import Image
 from torchvision.utils import make_grid
 
+from src.api.schemas import GenerateResponse, HealthResponse
 from src.model import Generator
 from src.sample import interpolate, random_samples
 
@@ -52,24 +53,24 @@ def tensor_grid_to_b64(tensor, nrow=4):
     return base64.b64encode(buf.getvalue()).decode('ascii')
 
 
-@app.get('/health')
+@app.get('/health', response_model=HealthResponse)
 def health():
-    return {'status': 'ok', 'ckpt_present': os.path.exists(CKPT_PATH)}
+    return HealthResponse(status='ok', ckpt_present=os.path.exists(CKPT_PATH))
 
 
-@app.get('/generate')
+@app.get('/generate', response_model=GenerateResponse)
 def generate(n: int = 16):
     if n < 1 or n > 64:
         raise HTTPException(400, 'n must be in [1, 64]')
     G, device = get_generator()
     imgs = random_samples(G, n, LATENT_DIM, device)
-    return {'n': n, 'png_b64': tensor_grid_to_b64(imgs, nrow=4)}
+    return GenerateResponse(n=n, png_b64=tensor_grid_to_b64(imgs, nrow=4))
 
 
-@app.get('/interpolate')
+@app.get('/interpolate', response_model=GenerateResponse)
 def interpolate_endpoint(n: int = 10):
     if n < 2 or n > 32:
         raise HTTPException(400, 'n must be in [2, 32]')
     G, device = get_generator()
     imgs = interpolate(G, n, LATENT_DIM, device)
-    return {'n': n, 'png_b64': tensor_grid_to_b64(imgs, nrow=n)}
+    return GenerateResponse(n=n, png_b64=tensor_grid_to_b64(imgs, nrow=n))
