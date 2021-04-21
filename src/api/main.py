@@ -3,18 +3,15 @@
 The Generator checkpoint path is read from env DCGAN_CKPT (defaults to
 artifacts/checkpoints/latest.pt).
 """
-import base64
-import io
 import os
 
 import torch
 from fastapi import FastAPI, HTTPException
-from PIL import Image
-from torchvision.utils import make_grid
 
 from src.api.schemas import GenerateResponse, HealthResponse
 from src.model import Generator
 from src.sample import interpolate, random_samples
+from src.utils import tensor_grid_to_b64
 
 
 app = FastAPI(title='DCGAN demo')
@@ -41,16 +38,6 @@ def get_generator():
     _state['G'] = G
     _state['device'] = device
     return G, device
-
-
-def tensor_grid_to_b64(tensor, nrow=4):
-    tensor = (tensor.clamp(-1, 1) + 1) / 2.0
-    grid = make_grid(tensor, nrow=nrow)
-    arr = grid.mul(255).byte().cpu().numpy().transpose(1, 2, 0)
-    img = Image.fromarray(arr)
-    buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    return base64.b64encode(buf.getvalue()).decode('ascii')
 
 
 @app.get('/health', response_model=HealthResponse)
