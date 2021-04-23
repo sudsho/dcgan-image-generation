@@ -23,3 +23,26 @@ def test_interpolate_endpoints_match():
         last = G(z_b)
     assert torch.allclose(out[0], first[0], atol=1e-5)
     assert torch.allclose(out[-1], last[0], atol=1e-5)
+
+
+def test_interpolate_n2_yields_endpoints_only():
+    """Edge case: n=2 should just be [G(z_a), G(z_b)]."""
+    G = Generator(latent_dim=100).eval()
+    z_a = torch.randn(1, 100)
+    z_b = torch.randn(1, 100)
+    out = interpolate(G, 2, 100, torch.device('cpu'), z_a=z_a, z_b=z_b)
+    assert out.shape == (2, 3, 64, 64)
+    with torch.no_grad():
+        a = G(z_a)
+        b = G(z_b)
+    assert torch.allclose(out[0], a[0], atol=1e-5)
+    assert torch.allclose(out[1], b[0], atol=1e-5)
+
+
+def test_random_samples_distinct():
+    """Different draws should produce different images."""
+    G = Generator(latent_dim=100).eval()
+    a = random_samples(G, 4, 100, torch.device('cpu'))
+    b = random_samples(G, 4, 100, torch.device('cpu'))
+    # extremely unlikely to be the same
+    assert not torch.allclose(a, b, atol=1e-3)
