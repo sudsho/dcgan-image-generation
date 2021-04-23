@@ -25,14 +25,17 @@ _state = {'G': None, 'device': None}
 
 
 def get_generator():
+    # cache hit
     if _state['G'] is not None:
         return _state['G'], _state['device']
-    if not os.path.exists(CKPT_PATH):
+    # re-read CKPT_PATH on every call so tests can override via env
+    ckpt_path = os.environ.get('DCGAN_CKPT', CKPT_PATH)
+    if not os.path.exists(ckpt_path):
         raise HTTPException(status_code=503,
-                            detail=f'checkpoint not found at {CKPT_PATH}')
+                            detail=f'checkpoint not found at {ckpt_path}')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     G = Generator(LATENT_DIM, NGF, CHANNELS).to(device)
-    state = torch.load(CKPT_PATH, map_location=device)
+    state = torch.load(ckpt_path, map_location=device)
     G.load_state_dict(state['G'])
     G.eval()
     _state['G'] = G
