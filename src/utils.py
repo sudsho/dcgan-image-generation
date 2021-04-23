@@ -31,11 +31,12 @@ def save_sample_grid(tensor, path, nrow=8):
     save_image(tensor, path, nrow=nrow)
 
 
-def make_grid_uint8(tensor, nrow=8):
+def make_grid_uint8(tensor, nrow=8, padding=2):
     """Return HxWxC uint8 numpy array for GIF building."""
     tensor = (tensor.clamp(-1, 1) + 1) / 2.0
-    grid = make_grid(tensor, nrow=nrow)
-    grid = grid.mul(255).byte().cpu().numpy()
+    grid = make_grid(tensor, nrow=nrow, padding=padding)
+    # mul then clamp to handle floating rounding
+    grid = grid.mul(255).clamp(0, 255).byte().cpu().numpy()
     # CHW -> HWC
     return grid.transpose(1, 2, 0)
 
