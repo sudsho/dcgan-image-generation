@@ -28,6 +28,7 @@ def train(cfg):
                           if torch.cuda.is_available() else 'cpu')
     set_seed(cfg['train']['seed'])
     smoothing = float(cfg['train'].get('label_smoothing', 0.0))
+    flip_p = float(cfg['train'].get('label_flip_prob', 0.0))
 
     loader = get_celeba_loader(
         root=cfg['data']['root'],
@@ -76,6 +77,12 @@ def train(cfg):
             # one-sided label smoothing: real -> 1 - smoothing
             real_labels = torch.full((b,), 1.0 - smoothing, device=device)
             fake_labels = torch.full((b,), 0.0, device=device)
+            # occasionally flip a small fraction of D's labels - helps when
+            # D dominates and G stops getting useful gradients (mode collapse)
+            if flip_p > 0:
+                flip_mask = (torch.rand(b, device=device) < flip_p)
+                real_labels[flip_mask] = 0.0
+                fake_labels[flip_mask] = 1.0 - smoothing
             out_real = D(real)
             loss_d_real = criterion(out_real, real_labels)
             z = torch.randn(b, cfg['model']['latent_dim'], device=device)
