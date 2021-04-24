@@ -21,15 +21,15 @@ LATENT_DIM = int(os.environ.get('DCGAN_LATENT_DIM', 100))
 NGF = int(os.environ.get('DCGAN_NGF', 64))
 CHANNELS = 3
 
-_state = {'G': None, 'device': None}
+_state = {'G': None, 'device': None, 'ckpt_path': None}
 
 
 def get_generator():
-    # cache hit
-    if _state['G'] is not None:
-        return _state['G'], _state['device']
     # re-read CKPT_PATH on every call so tests can override via env
     ckpt_path = os.environ.get('DCGAN_CKPT', CKPT_PATH)
+    # invalidate cache if ckpt path changed
+    if _state['G'] is not None and _state['ckpt_path'] == ckpt_path:
+        return _state['G'], _state['device']
     if not os.path.exists(ckpt_path):
         raise HTTPException(status_code=503,
                             detail=f'checkpoint not found at {ckpt_path}')
@@ -40,6 +40,7 @@ def get_generator():
     G.eval()
     _state['G'] = G
     _state['device'] = device
+    _state['ckpt_path'] = ckpt_path
     return G, device
 
 
