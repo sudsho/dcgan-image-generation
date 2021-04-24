@@ -41,8 +41,12 @@ def test_interpolate_n2_yields_endpoints_only():
 
 def test_random_samples_distinct():
     """Different draws should produce different images."""
+    torch.manual_seed(0)
     G = Generator(latent_dim=100).eval()
+    # need to advance the rng between calls so the two batches don't collide
     a = random_samples(G, 4, 100, torch.device('cpu'))
+    torch.manual_seed(1)
     b = random_samples(G, 4, 100, torch.device('cpu'))
     # extremely unlikely to be the same
-    assert not torch.allclose(a, b, atol=1e-3)
+    diff = (a - b).abs().mean().item()
+    assert diff > 1e-2, f'samples too similar (mean abs diff {diff})'
