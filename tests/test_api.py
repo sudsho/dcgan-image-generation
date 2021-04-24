@@ -24,6 +24,8 @@ def client(tmp_path, monkeypatch):
     import importlib
     import src.api.main as m
     importlib.reload(m)
+    # ensure cache is fresh between tests
+    m._state.update({'G': None, 'device': None, 'ckpt_path': None})
     return TestClient(m.app)
 
 
