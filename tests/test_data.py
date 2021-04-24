@@ -1,6 +1,7 @@
 """Tests for the data transforms / loader (uses tmp ImageFolder root)."""
 import os
 
+import numpy as np
 import torch
 from PIL import Image
 
@@ -8,10 +9,8 @@ from src.data import build_transform, get_celeba_loader
 
 
 def _write_dummy_jpeg(path, size=(178, 218)):
-    Image.fromarray(
-        (torch.randint(0, 255, (size[1], size[0], 3))
-         .byte().numpy())
-    ).save(path, 'JPEG')
+    arr = np.random.randint(0, 255, (size[1], size[0], 3), dtype=np.uint8)
+    Image.fromarray(arr).save(path, 'JPEG')
 
 
 def test_build_transform_outputs_64x64(tmp_path):
