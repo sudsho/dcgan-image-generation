@@ -9,6 +9,9 @@ def build_gif(samples_dir, out_path, fps=4):
     paths = sorted(glob.glob(os.path.join(samples_dir, 'epoch_*.png')))
     if not paths:
         raise FileNotFoundError(f'no epoch_*.png under {samples_dir}')
+    out_dir = os.path.dirname(out_path)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
     frames = [imageio.imread(p) for p in paths]
     imageio.mimsave(out_path, frames, fps=fps)
     print(f'wrote {out_path} ({len(frames)} frames)')
