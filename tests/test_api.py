@@ -58,3 +58,20 @@ def test_interpolate(client):
     assert body['n'] == 6
     raw = base64.b64decode(body['png_b64'])
     assert raw[:8] == b'\x89PNG\r\n\x1a\n'
+
+
+def test_interpolate_bad_n(client):
+    r = client.get('/interpolate', params={'n': 1})
+    assert r.status_code == 400
+
+
+def test_missing_ckpt_returns_503(tmp_path, monkeypatch):
+    # point to a path that doesn't exist; cache is reset, no checkpoint
+    monkeypatch.setenv('DCGAN_CKPT', str(tmp_path / 'does_not_exist.pt'))
+    import importlib
+    import src.api.main as m
+    importlib.reload(m)
+    m._state.update({'G': None, 'device': None, 'ckpt_path': None})
+    c = TestClient(m.app)
+    r = c.get('/generate', params={'n': 4})
+    assert r.status_code == 503
