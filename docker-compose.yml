@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  api:
+    build: .
+    image: dcgan-api:latest
+    container_name: dcgan-api
+    ports:
+      - "8000:8000"
+    environment:
+      DCGAN_CKPT: /app/artifacts/checkpoints/latest.pt
+      DCGAN_LATENT_DIM: 100
+      DCGAN_NGF: 64
+    volumes:
+      - ./artifacts:/app/artifacts:ro
+    restart: unless-stopped
