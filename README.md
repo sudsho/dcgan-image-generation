@@ -99,8 +99,25 @@ Response is `{"png_b64": "..."}` so the client can decode and display.
 
 ## Deploy
 
-The Dockerfile builds a CPU image with the trained generator baked in. See
-`docker-compose.yml`. CI config lives at `ci/test.yml.example` (copy to
+```
+docker build -t dcgan-api .
+docker run --rm -p 8000:8000 \
+    -v $(pwd)/artifacts:/app/artifacts:ro \
+    dcgan-api
+```
+
+Or with compose:
+
+```
+docker-compose up --build
+```
+
+The image runs uvicorn on port 8000. Mount `artifacts/` read-only so the
+trained checkpoint at `artifacts/checkpoints/latest.pt` is visible inside
+the container. The CKPT path can be overridden via the `DCGAN_CKPT` env
+var.
+
+CI config lives at `ci/test.yml.example` (copy to
 `.github/workflows/test.yml` once the OAuth scope allows workflow files).
 
 ## License
