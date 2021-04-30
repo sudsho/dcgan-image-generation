@@ -22,6 +22,8 @@ artifacts/checkpoints/
 artifacts/samples/
 artifacts/*.gif
 !artifacts/.gitkeep
+!artifacts/training.gif
+!artifacts/interp.png
 .pytest_cache/
 .coverage
 htmlcov/
