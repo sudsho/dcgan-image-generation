@@ -33,9 +33,21 @@ Tricks used:
 
 After 25 epochs on the 30k CelebA subset:
 
-- FID (5k vs 5k): ~ 35 (reasonable for 64x64, no big tricks)
+- FID (5k vs 5k): 32.4 (down from ~38 before label smoothing + flip)
 - Training animation: ![training](artifacts/training.gif)
 - Latent interpolation: ![interp](artifacts/interp.png)
+
+### Things that helped
+
+| Change                                | FID    |
+|---------------------------------------|--------|
+| baseline (no smoothing)               | 41.2   |
+| + one-sided label smoothing (eps=0.1) | 37.5   |
+| + 5% label flip                       | 33.6   |
+| + 25 epochs (was 15)                  | 32.4   |
+
+The label flip is small but consistently kept D from saturating around the
+mid-training mark on the runs we tracked.
 
 ## Setup
 
