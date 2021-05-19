@@ -1,4 +1,3 @@
-# Move to .github/workflows/test.yml once OAuth scope allows workflow files.
 name: tests
 
 on:

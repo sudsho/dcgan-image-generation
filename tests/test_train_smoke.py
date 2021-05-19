@@ -33,9 +33,9 @@ def test_train_runs_one_epoch(tmp_path):
         'train': {
             'epochs': 1, 'lr_g': 2e-4, 'lr_d': 2e-4,
             'beta1': 0.5, 'beta2': 0.999,
-            'label_smoothing': 0.1, 'label_flip_prob': 0.0,
+            'label_smoothing': 0.1,
             'device': 'cpu', 'seed': 0,
-            'log_interval': 1, 'sample_interval': 1,
+            'log_interval': 1,
             'output_dir': str(tmp_path / 'out'),
         },
         'fid': {'enabled': False, 'num_real': 4, 'num_fake': 4,

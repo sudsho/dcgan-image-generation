@@ -1,16 +1,10 @@
-.PHONY: install train sample fid api test clean
+.PHONY: install train api test clean
 
 install:
 	pip install -r requirements.txt
 
 train:
 	python -m src.train --config configs/default.yaml
-
-sample:
-	python -m src.sample --n 64
-
-fid:
-	python -m src.fid --config configs/default.yaml
 
 api:
 	uvicorn src.api.main:app --host 0.0.0.0 --port 8000

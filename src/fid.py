@@ -82,13 +82,18 @@ def compute_fid(G, loader, latent_dim, num_real, num_fake, device):
     real_feats = gather_features(extractor, real_batches, device)[:num_real]
 
     fake_batches, n_fake = [], 0
+    was_training = G.training
     G.eval()
-    with torch.no_grad():
-        while n_fake < num_fake:
-            b = min(64, num_fake - n_fake)
-            z = torch.randn(b, latent_dim, device=device)
-            fake_batches.append(G(z).cpu())
-            n_fake += b
+    try:
+        with torch.no_grad():
+            while n_fake < num_fake:
+                b = min(64, num_fake - n_fake)
+                z = torch.randn(b, latent_dim, device=device)
+                fake_batches.append(G(z).cpu())
+                n_fake += b
+    finally:
+        if was_training:
+            G.train()
     fake_feats = gather_features(extractor, fake_batches, device)[:num_fake]
 
     mu_r, cov_r = calc_stats(real_feats)

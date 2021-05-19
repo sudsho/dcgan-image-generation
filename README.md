@@ -1,53 +1,34 @@
 # dcgan-image-generation
 
-Deep Convolutional GAN trained on a CelebA face subset. Outputs 64x64 face
-samples, training animations and a small FastAPI demo.
+Deep Convolutional GAN (Radford et al. 2016) implemented in PyTorch, with a
+small FastAPI demo that serves generated samples. Trains on a CelebA face
+subset at 64x64.
 
 ## What it does
 
-Given random noise z ~ N(0, I) of size 100, generate 64x64 face images that
-look like CelebA samples. We train a DCGAN (Radford et al. 2016) on a
-30k-image CelebA subset, save sample grids each epoch, stitch them into a
-GIF, and report FID against held-out real samples.
+Given random noise z ~ N(0, I) of size 100, generate 64x64 face images from
+CelebA. The repo covers the training loop, sample saving per epoch, a GIF
+builder, an FID script, and a tiny inference API. No trained checkpoints are
+committed; you train it yourself on your own CelebA copy.
 
 ## Architecture
 
 ```
-G:  z(100) -> ConvT(4x4, s1) -> BN, ReLU
-        -> ConvT(4x4, s2) -> BN, ReLU   x4
-        -> Conv(3 channels) -> Tanh    output 3x64x64
+G:  z(100, 1x1) -> ConvT(4x4, s1) -> BN, ReLU          (1 -> 4)
+             -> ConvT(4x4, s2) -> BN, ReLU  x3         (4 -> 8 -> 16 -> 32)
+             -> ConvT(4x4, s2) -> Tanh                 (32 -> 64, 3 channels)
 
-D:  3x64x64 -> Conv(s2), LeakyReLU(0.2)             (no BN at input)
-            -> Conv(s2), BN, LeakyReLU(0.2)   x3
-            -> Conv -> 1                            (no BN at output)
+D:  3x64x64 -> Conv(s2), LeakyReLU(0.2)                (no BN at input)
+            -> Conv(s2), BN, LeakyReLU(0.2)  x3
+            -> Conv -> 1                               (no BN at output)
 ```
 
 Tricks used:
-- BN in G but **not** in D's input layer, **not** in D's output (logit) layer
+- BN in G but not in D's input layer, and not in D's output (logit) layer
 - LeakyReLU(0.2) in D, ReLU in G, Tanh on G output
 - Adam(lr=2e-4, beta1=0.5)
 - One-sided label smoothing: real labels are 0.9 instead of 1.0
 - Weight init N(0, 0.02) on Conv/ConvTranspose
-
-## Results
-
-After 25 epochs on the 30k CelebA subset:
-
-- FID (5k vs 5k): 32.4 (down from ~38 before label smoothing + flip)
-- Training animation: ![training](artifacts/training.gif)
-- Latent interpolation: ![interp](artifacts/interp.png)
-
-### Things that helped
-
-| Change                                | FID    |
-|---------------------------------------|--------|
-| baseline (no smoothing)               | 41.2   |
-| + one-sided label smoothing (eps=0.1) | 37.5   |
-| + 5% label flip                       | 33.6   |
-| + 25 epochs (was 15)                  | 32.4   |
-
-The label flip is small but consistently kept D from saturating around the
-mid-training mark on the runs we tracked.
 
 ## Setup
 
@@ -66,17 +47,33 @@ make train
 python -m src.train --config configs/default.yaml
 ```
 
+Per-epoch sample grids land under `artifacts/samples/epoch_XXX.png` and
+checkpoints under `artifacts/checkpoints/epoch_XXX.pt`. Neither is checked
+into git.
+
 ## Build the training GIF
 
 ```
-make sample          # optional: extra samples
 python -m src.anim --samples-dir artifacts/samples --out artifacts/training.gif
 ```
 
 ## FID
 
+Requires a trained checkpoint. Note that FID is computed against a subset of
+the same training data, not a held-out split, so the number is only useful
+for comparing runs against each other in this repo. It is not directly
+comparable to published FID numbers (this implementation uses torchvision's
+ImageNet-trained InceptionV3, not the TF-ported pt_inception used by the
+standard FID reference).
+
 ```
 python -m src.fid --config configs/default.yaml --ckpt artifacts/checkpoints/epoch_024.pt
+```
+
+## Sample from a checkpoint
+
+```
+python -m src.sample --ckpt artifacts/checkpoints/epoch_024.pt --n 64
 ```
 
 ## API demo
@@ -128,9 +125,6 @@ The image runs uvicorn on port 8000. Mount `artifacts/` read-only so the
 trained checkpoint at `artifacts/checkpoints/latest.pt` is visible inside
 the container. The CKPT path can be overridden via the `DCGAN_CKPT` env
 var.
-
-CI config lives at `ci/test.yml.example` (copy to
-`.github/workflows/test.yml` once the OAuth scope allows workflow files).
 
 ## License
 
