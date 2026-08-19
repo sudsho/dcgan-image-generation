@@ -1,7 +1,10 @@
-.PHONY: install train api test clean
+.PHONY: install train api test smoke clean
 
 install:
 	pip install -r requirements.txt
+
+smoke:
+	python scripts/smoke.py
 
 train:
 	python -m src.train --config configs/default.yaml

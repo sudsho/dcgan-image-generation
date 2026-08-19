@@ -40,9 +40,16 @@ def test_interpolate_n2_yields_endpoints_only():
 
 
 def test_random_samples_distinct():
-    """Different draws should produce different images."""
+    """Different draws should produce different images.
+
+    Note: an untrained generator in eval() mode has default BatchNorm running
+    stats (mean 0, var 1) and collapses to near-constant output regardless of
+    z, so this property is only observable with active BatchNorm (train mode)
+    or a trained checkpoint. We keep the untrained G in its default train mode
+    here so the z -> image mapping is meaningfully input-dependent.
+    """
     torch.manual_seed(0)
-    G = Generator(latent_dim=100).eval()
+    G = Generator(latent_dim=100)
     # need to advance the rng between calls so the two batches don't collide
     a = random_samples(G, 4, 100, torch.device('cpu'))
     torch.manual_seed(1)
